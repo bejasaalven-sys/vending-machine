@@ -31,11 +31,13 @@ void initStockFile() {
     FILE *fp = fopen(STOCK_FILE, "r");
     if (fp == NULL) {
         fp = fopen(STOCK_FILE, "w");
-        fprintf(fp, "1 Chips 35 10\n");
-        fprintf(fp, "2 Soda 25 8\n");
-        fprintf(fp, "3 Bread 20 15\n");
-        fprintf(fp, "4 Chocolate 50 6\n");
-        fprintf(fp, "5 Water 15 20\n");
+        if (fp != NULL) {
+            fprintf(fp, "1 Chips 35 10\n");
+            fprintf(fp, "2 Soda 25 8\n");
+            fprintf(fp, "3 Bread 20 15\n");
+            fprintf(fp, "4 Chocolate 50 6\n");
+            fprintf(fp, "5 Water 15 20\n");
+        }
     }
     if (fp) fclose(fp);
 }
@@ -44,8 +46,10 @@ void initInventoryFile() {
     FILE *fp = fopen(INV_FILE, "r");
     if (fp == NULL) {
         fp = fopen(INV_FILE, "w");
-        fprintf(fp, "500\n");
-        fprintf(fp, "0\n");
+        if (fp != NULL) {
+            fprintf(fp, "500\n");
+            fprintf(fp, "0\n");
+        }
     }
     if (fp) fclose(fp);
 }
@@ -53,60 +57,65 @@ void initInventoryFile() {
 void loadStock(Product p[], int *count) {
     FILE *fp = fopen(STOCK_FILE, "r");
     *count = 0;
-    while (fp && *count < MAX_PRODUCTS &&
+    if (fp == NULL) return;
+
+    while (*count < MAX_PRODUCTS &&
            fscanf(fp, "%d %29s %d %d",
                   &p[*count].id, p[*count].name, &p[*count].price, &p[*count].stock) == 4) {
         (*count)++;
     }
-    if (fp) fclose(fp);
+
+    fclose(fp);
 }
 
 void saveStock(Product p[], int count) {
     FILE *fp = fopen(STOCK_FILE, "w");
     int i;
+    if (fp == NULL) return;
+
     for (i = 0; i < count; i++) {
         fprintf(fp, "%d %s %d %d\n", p[i].id, p[i].name, p[i].price, p[i].stock);
     }
-    if (fp) fclose(fp);
+
+    fclose(fp);
 }
 
 void loadInventory(Item items[], int *itemCount, int *money) {
     FILE *fp = fopen(INV_FILE, "r");
-    int totalKinds;
+    int totalKinds, i;
 
     *itemCount = 0;
+    *money = 500;
 
-    if (fp == NULL) {
-        *money = 500;
-        return;
+    if (fp == NULL) return;
+
+    if (fscanf(fp, "%d", money) != 1) *money = 500;
+    if (fscanf(fp, "%d", &totalKinds) != 1) totalKinds = 0;
+
+    for (i = 0; i < totalKinds && *itemCount < MAX_BUY; i++) {
+        if (fscanf(fp, "%29s %d", items[*itemCount].name, &items[*itemCount].qty) == 2) {
+            (*itemCount)++;
+        } else {
+            break;
+        }
     }
 
-    if (fscanf(fp, "%d", money) != 1) {
-        *money = 500;
-    }
-
-    if (fscanf(fp, "%d", &totalKinds) != 1) {
-        totalKinds = 0;
-    }
-
-    while (*itemCount < MAX_BUY && totalKinds > 0 &&
-           fscanf(fp, "%29s %d", items[*itemCount].name, &items[*itemCount].qty) == 2) {
-        (*itemCount)++;
-        totalKinds--;
-    }
-
-    if (fp) fclose(fp);
+    fclose(fp);
 }
 
 void saveInventory(Item items[], int itemCount, int money) {
     FILE *fp = fopen(INV_FILE, "w");
     int i;
+    if (fp == NULL) return;
+
     fprintf(fp, "%d\n", money);
     fprintf(fp, "%d\n", itemCount);
+
     for (i = 0; i < itemCount; i++) {
         fprintf(fp, "%s %d\n", items[i].name, items[i].qty);
     }
-    if (fp) fclose(fp);
+
+    fclose(fp);
 }
 
 void viewProducts(Product p[], int count) {
@@ -127,13 +136,21 @@ int findProduct(Product p[], int count, int id) {
 
 void addToInventory(Item items[], int *itemCount, char name[]) {
     int i;
+
     for (i = 0; i < *itemCount; i++) {
         if (strcmp(items[i].name, name) == 0) {
             items[i].qty++;
             return;
         }
     }
-    strcpy(items[*itemCount].name, name);
+
+    if (*itemCount >= MAX_BUY) {
+        printf("Inventory is full. Cannot add more items.\n");
+        return;
+    }
+
+    strncpy(items[*itemCount].name, name, 29);
+    items[*itemCount].name[29] = '\0';
     items[*itemCount].qty = 1;
     (*itemCount)++;
 }
@@ -142,7 +159,10 @@ void buyProduct(Product p[], int count, Item items[], int *itemCount, int *money
     int choice, pos;
 
     printf("Enter product number: ");
-    scanf("%d", &choice);
+    if (scanf("%d", &choice) != 1) {
+        printf("Invalid input.\n");
+        return;
+    }
 
     pos = findProduct(p, count, choice);
 
@@ -208,7 +228,10 @@ int main() {
         printf("3. View inventory\n");
         printf("4. Exit\n");
         printf("\nChoose: ");
-        scanf("%d", &choice);
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input. Exiting.\n");
+            break;
+        }
 
         if (choice == 1) {
             viewProducts(products, productCount);
