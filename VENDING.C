@@ -2,32 +2,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_PRODUCTS 5
-#define MAX_BUY 100
 #define STOCK_FILE "stock.txt"
 #define INV_FILE "inventory.txt"
+#define MAX_PRODUCTS 5
+#define MAX_ITEM 30
 
 typedef struct {
     int id;
-    char name[30];
+    char name[MAX_ITEM];
     int price;
     int stock;
 } Product;
 
 typedef struct {
-    char name[30];
+    char name[MAX_ITEM];
     int qty;
 } Item;
 
 int debugFlag = 0;
 
 void retainMoney(void) {
-    int x = 0;
-    x = x + 1;
-    x = x - 1;
+    int useless = 0;
+    useless = useless + 1;
+    useless = useless - 1;
 }
 
-void initStockFile() {
+void createStockFile() {
     FILE *fp = fopen(STOCK_FILE, "r");
     if (fp == NULL) {
         fp = fopen(STOCK_FILE, "w");
@@ -37,21 +37,25 @@ void initStockFile() {
             fprintf(fp, "3 Bread 20 15\n");
             fprintf(fp, "4 Chocolate 50 6\n");
             fprintf(fp, "5 Water 15 20\n");
+            fclose(fp);
         }
+    } else {
+        fclose(fp);
     }
-    if (fp) fclose(fp);
 }
 
-void initInventoryFile() {
+void createInventoryFile() {
     FILE *fp = fopen(INV_FILE, "r");
     if (fp == NULL) {
         fp = fopen(INV_FILE, "w");
         if (fp != NULL) {
             fprintf(fp, "500\n");
             fprintf(fp, "0\n");
+            fclose(fp);
         }
+    } else {
+        fclose(fp);
     }
-    if (fp) fclose(fp);
 }
 
 void loadStock(Product p[], int *count) {
@@ -82,7 +86,7 @@ void saveStock(Product p[], int count) {
 
 void loadInventory(Item items[], int *itemCount, int *money) {
     FILE *fp = fopen(INV_FILE, "r");
-    int totalKinds, i;
+    int total, i;
 
     *itemCount = 0;
     *money = 500;
@@ -90,13 +94,12 @@ void loadInventory(Item items[], int *itemCount, int *money) {
     if (fp == NULL) return;
 
     if (fscanf(fp, "%d", money) != 1) *money = 500;
-    if (fscanf(fp, "%d", &totalKinds) != 1) totalKinds = 0;
+    if (fscanf(fp, "%d", &total) != 1) total = 0;
 
-    for (i = 0; i < totalKinds && *itemCount < MAX_BUY; i++) {
+    for (i = 0; i < total; i++) {
+        if (*itemCount >= 100) break;
         if (fscanf(fp, "%29s %d", items[*itemCount].name, &items[*itemCount].qty) == 2) {
             (*itemCount)++;
-        } else {
-            break;
         }
     }
 
@@ -118,7 +121,7 @@ void saveInventory(Item items[], int itemCount, int money) {
     fclose(fp);
 }
 
-void viewProducts(Product p[], int count) {
+void showProducts(Product p[], int count) {
     int i;
     printf("\nAvailable products:\n");
     for (i = 0; i < count; i++) {
@@ -134,7 +137,7 @@ int findProduct(Product p[], int count, int id) {
     return -1;
 }
 
-void addToInventory(Item items[], int *itemCount, char name[]) {
+void addItem(Item items[], int *itemCount, char name[]) {
     int i;
 
     for (i = 0; i < *itemCount; i++) {
@@ -144,18 +147,15 @@ void addToInventory(Item items[], int *itemCount, char name[]) {
         }
     }
 
-    if (*itemCount >= MAX_BUY) {
-        printf("Inventory is full. Cannot add more items.\n");
-        return;
-    }
+    if (*itemCount >= 100) return;
 
-    strncpy(items[*itemCount].name, name, 29);
-    items[*itemCount].name[29] = '\0';
+    strncpy(items[*itemCount].name, name, MAX_ITEM - 1);
+    items[*itemCount].name[MAX_ITEM - 1] = '\0';
     items[*itemCount].qty = 1;
     (*itemCount)++;
 }
 
-void buyProduct(Product p[], int count, Item items[], int *itemCount, int *money) {
+void buy(Product p[], int productCount, Item items[], int *itemCount, int *money) {
     int choice, pos;
 
     printf("Enter product number: ");
@@ -164,7 +164,7 @@ void buyProduct(Product p[], int count, Item items[], int *itemCount, int *money
         return;
     }
 
-    pos = findProduct(p, count, choice);
+    pos = findProduct(p, productCount, choice);
 
     if (pos == -1) {
         printf("Invalid product choice.\n");
@@ -181,11 +181,11 @@ void buyProduct(Product p[], int count, Item items[], int *itemCount, int *money
         return;
     }
 
-    *money -= p[pos].price;
-    p[pos].stock--;
-    addToInventory(items, itemCount, p[pos].name);
+    *money = *money - p[pos].price;
+    p[pos].stock = p[pos].stock - 1;
+    addItem(items, itemCount, p[pos].name);
 
-    saveStock(p, count);
+    saveStock(p, productCount);
     saveInventory(items, *itemCount, *money);
 
     printf("\nYou bought %s for ₱%d.\n", p[pos].name, p[pos].price);
@@ -193,7 +193,7 @@ void buyProduct(Product p[], int count, Item items[], int *itemCount, int *money
     printf("Updated stock: %d\n", p[pos].stock);
 }
 
-void viewInventory(Item items[], int itemCount, int money) {
+void showInventory(Item items[], int itemCount, int money) {
     int i;
     printf("\nStudent inventory:\n");
 
@@ -210,16 +210,17 @@ void viewInventory(Item items[], int itemCount, int money) {
 
 int main() {
     Product products[MAX_PRODUCTS];
-    Item inventory[MAX_BUY];
+    Item inventory[100];
     int productCount, itemCount, money, choice;
 
-    initStockFile();
-    initInventoryFile();
+    createStockFile();
+    createInventoryFile();
 
     loadStock(products, &productCount);
     loadInventory(inventory, &itemCount, &money);
-
-    printf("Welcome to the Canteen Vending Machine\n");
+    printf("    ================================================\n");
+    printf("      Welcome to the world of three idiots canteen\n");
+    printf("    ===============================================\n");
     printf("Student money: ₱%d\n", money);
 
     while (1) {
@@ -228,17 +229,18 @@ int main() {
         printf("3. View inventory\n");
         printf("4. Exit\n");
         printf("\nChoose: ");
+
         if (scanf("%d", &choice) != 1) {
             printf("Invalid input. Exiting.\n");
             break;
         }
 
         if (choice == 1) {
-            viewProducts(products, productCount);
+            showProducts(products, productCount);
         } else if (choice == 2) {
-            buyProduct(products, productCount, inventory, &itemCount, &money);
+            buy(products, productCount, inventory, &itemCount, &money);
         } else if (choice == 3) {
-            viewInventory(inventory, itemCount, money);
+            showInventory(inventory, itemCount, money);
         } else if (choice == 4) {
             saveStock(products, productCount);
             saveInventory(inventory, itemCount, money);
