@@ -2,254 +2,232 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define STOCK_FILE "stock.txt"
-#define INV_FILE "inventory.txt"
-#define MAX_PRODUCTS 5
-#define MAX_ITEM 30
+#define N 5
+#define LEN 30
+#define MAXINV 20
 
 typedef struct {
-    int id;
-    char name[MAX_ITEM];
+    char name[LEN];
     int price;
     int stock;
 } Product;
 
 typedef struct {
-    char name[MAX_ITEM];
+    char name[LEN];
     int qty;
 } Item;
 
-int debugFlag = 0;
-
-void retainMoney(void) {
-    int useless = 0;
-    useless = useless + 1;
-    useless = useless - 1;
-}
-
-void createStockFile() {
-    FILE *fp = fopen(STOCK_FILE, "r");
-    if (fp == NULL) {
-        fp = fopen(STOCK_FILE, "w");
-        if (fp != NULL) {
-            fprintf(fp, "1 Chips 35 10\n");
-            fprintf(fp, "2 Soda 25 8\n");
-            fprintf(fp, "3 Bread 20 15\n");
-            fprintf(fp, "4 Chocolate 50 6\n");
-            fprintf(fp, "5 Water 15 20\n");
-            fclose(fp);
-        }
-    } else {
-        fclose(fp);
-    }
-}
-
-void createInventoryFile() {
-    FILE *fp = fopen(INV_FILE, "r");
-    if (fp == NULL) {
-        fp = fopen(INV_FILE, "w");
-        if (fp != NULL) {
-            fprintf(fp, "500\n");
-            fprintf(fp, "0\n");
-            fclose(fp);
-        }
-    } else {
-        fclose(fp);
-    }
-}
-
-void loadStock(Product p[], int *count) {
-    FILE *fp = fopen(STOCK_FILE, "r");
-    *count = 0;
-    if (fp == NULL) return;
-
-    while (*count < MAX_PRODUCTS &&
-           fscanf(fp, "%d %29s %d %d",
-                  &p[*count].id, p[*count].name, &p[*count].price, &p[*count].stock) == 4) {
-        (*count)++;
-    }
-
-    fclose(fp);
-}
-
-void saveStock(Product p[], int count) {
-    FILE *fp = fopen(STOCK_FILE, "w");
-    int i;
-    if (fp == NULL) return;
-
-    for (i = 0; i < count; i++) {
-        fprintf(fp, "%d %s %d %d\n", p[i].id, p[i].name, p[i].price, p[i].stock);
-    }
-
-    fclose(fp);
-}
-
-void loadInventory(Item items[], int *itemCount, int *money) {
-    FILE *fp = fopen(INV_FILE, "r");
-    int total, i;
-
-    *itemCount = 0;
-    *money = 500;
-
-    if (fp == NULL) return;
-
-    if (fscanf(fp, "%d", money) != 1) *money = 500;
-    if (fscanf(fp, "%d", &total) != 1) total = 0;
-
-    for (i = 0; i < total; i++) {
-        if (*itemCount >= 100) break;
-        if (fscanf(fp, "%29s %d", items[*itemCount].name, &items[*itemCount].qty) == 2) {
-            (*itemCount)++;
-        }
-    }
-
-    fclose(fp);
-}
-
-void saveInventory(Item items[], int itemCount, int money) {
-    FILE *fp = fopen(INV_FILE, "w");
-    int i;
-    if (fp == NULL) return;
-
-    fprintf(fp, "%d\n", money);
-    fprintf(fp, "%d\n", itemCount);
-
-    for (i = 0; i < itemCount; i++) {
-        fprintf(fp, "%s %d\n", items[i].name, items[i].qty);
-    }
-
-    fclose(fp);
-}
-
-void showProducts(Product p[], int count) {
-    int i;
-    printf("\nAvailable products:\n");
-    for (i = 0; i < count; i++) {
-        printf("%d. %s - ₱%d - Stock: %d\n", p[i].id, p[i].name, p[i].price, p[i].stock);
-    }
-}
-
-int findProduct(Product p[], int count, int id) {
-    int i;
-    for (i = 0; i < count; i++) {
-        if (p[i].id == id) return i;
-    }
-    return -1;
-}
-
-void addItem(Item items[], int *itemCount, char name[]) {
-    int i;
-
-    for (i = 0; i < *itemCount; i++) {
-        if (strcmp(items[i].name, name) == 0) {
-            items[i].qty++;
-            return;
-        }
-    }
-
-    if (*itemCount >= 100) return;
-
-    strncpy(items[*itemCount].name, name, MAX_ITEM - 1);
-    items[*itemCount].name[MAX_ITEM - 1] = '\0';
-    items[*itemCount].qty = 1;
-    (*itemCount)++;
-}
-
-void buy(Product p[], int productCount, Item items[], int *itemCount, int *money) {
-    int choice, pos;
-
-    printf("Enter product number: ");
-    if (scanf("%d", &choice) != 1) {
-        printf("Invalid input.\n");
-        return;
-    }
-
-    pos = findProduct(p, productCount, choice);
-
-    if (pos == -1) {
-        printf("Invalid product choice.\n");
-        return;
-    }
-
-    if (p[pos].stock <= 0) {
-        printf("Sorry, %s is out of stock.\n", p[pos].name);
-        return;
-    }
-
-    if (*money < p[pos].price) {
-        printf("Not enough money.\n");
-        return;
-    }
-
-    *money = *money - p[pos].price;
-    p[pos].stock = p[pos].stock - 1;
-    addItem(items, itemCount, p[pos].name);
-
-    saveStock(p, productCount);
-    saveInventory(items, *itemCount, *money);
-
-    printf("\nYou bought %s for ₱%d.\n", p[pos].name, p[pos].price);
-    printf("Remaining money: ₱%d\n", *money);
-    printf("Updated stock: %d\n", p[pos].stock);
-}
-
-void showInventory(Item items[], int itemCount, int money) {
-    int i;
-    printf("\nStudent inventory:\n");
-
-    if (itemCount == 0) {
-        printf("No items purchased yet.\n");
-    } else {
-        for (i = 0; i < itemCount; i++) {
-            printf("%s x%d\n", items[i].name, items[i].qty);
-        }
-    }
-
-    printf("Remaining money: ₱%d\n", money);
-}
+/* function prototypes */
+void loadProducts(int store, Product p[]);
+void saveProducts(int store, Product p[]);
+void showProducts(Product p[]);
+void buyProduct(Product p[], Item inv[], int *invCount, int *money, char storeName[]);
+void showInventory(Item inv[], int invCount, int money);
+int findItem(Item inv[], int invCount, char name[]);
+void saveReceipt(char storeName[], char item[], int qty, int price, int total, int money);
 
 int main() {
-    Product products[MAX_PRODUCTS];
-    Item inventory[100];
-    int productCount, itemCount, money, choice;
+    Product p[N];
+    Item inv[MAXINV];
+    int invCount = 0;
+    int money = 500;
+    int store, choice;
 
-    createStockFile();
-    createInventoryFile();
+    char storeName[LEN];
 
-    loadStock(products, &productCount);
-    loadInventory(inventory, &itemCount, &money);
-    printf("    ================================================\n");
-    printf("      Welcome to the world of three idiots canteen\n");
-    printf("    ===============================================\n");
-    printf("Student money: ₱%d\n", money);
+    printf("Choose store:\n");
+    printf("1. Alven Store\n");
+    printf("2. Mac Store\n");
+    printf("3. Camille Store\n");
+    printf("4. Combined Store\n");
+    printf("Enter: ");
+    scanf("%d", &store);
+
+    if (store == 1) strcpy(storeName, "Alven_Store");
+    else if (store == 2) strcpy(storeName, "Mac_Store");
+    else if (store == 3) strcpy(storeName, "Camille_Store");
+    else strcpy(storeName, "Combined_Store");
+
+    loadProducts(store, p);
 
     while (1) {
-        printf("\n1. View products\n");
-        printf("2. Buy product\n");
-        printf("3. View inventory\n");
-        printf("4. Exit\n");
-        printf("\nChoose: ");
-
-        if (scanf("%d", &choice) != 1) {
-            printf("Invalid input. Exiting.\n");
-            break;
-        }
+        printf("\n1.View products\n2.Buy\n3.View inventory\n4.Exit\nEnter: ");
+        scanf("%d", &choice);
 
         if (choice == 1) {
-            showProducts(products, productCount);
+            showProducts(p);
         } else if (choice == 2) {
-            buy(products, productCount, inventory, &itemCount, &money);
+            buyProduct(p, inv, &invCount, &money, storeName);
+            saveProducts(store, p);
         } else if (choice == 3) {
-            showInventory(inventory, itemCount, money);
+            showInventory(inv, invCount, money);
         } else if (choice == 4) {
-            saveStock(products, productCount);
-            saveInventory(inventory, itemCount, money);
-            printf("Exiting... Thank you!\n");
+            saveProducts(store, p);
             break;
         } else {
-            printf("Invalid choice. Try again.\n");
+            printf("Invalid choice.\n");
         }
     }
 
     return 0;
+}
+
+void loadProducts(int store, Product p[]) {
+    FILE *fp;
+    int i;
+
+    if (store == 1) fp = fopen("alven_stock.txt", "r");
+    else if (store == 2) fp = fopen("mac_stock.txt", "r");
+    else if (store == 3) fp = fopen("camille_stock.txt", "r");
+    else fp = fopen("combined_stock.txt", "r");
+
+    if (fp == NULL) {
+        if (store == 1) {
+            strcpy(p[0].name, "Water");   p[0].price = 20; p[0].stock = 10;
+            strcpy(p[1].name, "Juice");   p[1].price = 30; p[1].stock = 8;
+            strcpy(p[2].name, "Chips");   p[2].price = 25; p[2].stock = 12;
+            strcpy(p[3].name, "Bread");   p[3].price = 15; p[3].stock = 20;
+            strcpy(p[4].name, "Candy");   p[4].price = 10; p[4].stock = 25;
+        } else if (store == 2) {
+            strcpy(p[0].name, "Burger");  p[0].price = 60; p[0].stock = 10;
+            strcpy(p[1].name, "Fries");   p[1].price = 35; p[1].stock = 15;
+            strcpy(p[2].name, "Soda");    p[2].price = 25; p[2].stock = 20;
+            strcpy(p[3].name, "Hotdog");  p[3].price = 40; p[3].stock = 12;
+            strcpy(p[4].name, "IceCream");p[4].price = 45; p[4].stock = 8;
+        } else if (store == 3) {
+            strcpy(p[0].name, "RiceMeal"); p[0].price = 70; p[0].stock = 8;
+            strcpy(p[1].name, "Pasta");    p[1].price = 55; p[1].stock = 10;
+            strcpy(p[2].name, "MilkTea");  p[2].price = 45; p[2].stock = 15;
+            strcpy(p[3].name, "Cookies");  p[3].price = 20; p[3].stock = 18;
+            strcpy(p[4].name, "Sandwich"); p[4].price = 50; p[4].stock = 10;
+        } else {
+            strcpy(p[0].name, "Notebook"); p[0].price = 25; p[0].stock = 15;
+            strcpy(p[1].name, "Pen");      p[1].price = 10; p[1].stock = 30;
+            strcpy(p[2].name, "Pencil");   p[2].price = 8;  p[2].stock = 40;
+            strcpy(p[3].name, "Eraser");   p[3].price = 5;  p[3].stock = 25;
+            strcpy(p[4].name, "Ruler");    p[4].price = 12; p[4].stock = 20;
+        }
+        return;
+    }
+
+    for (i = 0; i < N; i++) {
+        fscanf(fp, "%s %d %d", p[i].name, &p[i].price, &p[i].stock);
+    }
+    fclose(fp);
+}
+
+void saveProducts(int store, Product p[]) {
+    FILE *fp;
+    int i;
+
+    if (store == 1) fp = fopen("alven_stock.txt", "w");
+    else if (store == 2) fp = fopen("mac_stock.txt", "w");
+    else if (store == 3) fp = fopen("camille_stock.txt", "w");
+    else fp = fopen("combined_stock.txt", "w");
+
+    if (fp == NULL) return;
+
+    for (i = 0; i < N; i++) {
+        fprintf(fp, "%s %d %d\n", p[i].name, p[i].price, p[i].stock);
+    }
+    fclose(fp);
+}
+
+void showProducts(Product p[]) {
+    int i;
+    printf("\nAVAILABLE PRODUCTS:\n");
+    for (i = 0; i < N; i++) {
+        printf("%d. %s - Price: %d - Stock: %d\n", i + 1, p[i].name, p[i].price, p[i].stock);
+    }
+}
+
+void buyProduct(Product p[], Item inv[], int *invCount, int *money, char storeName[]) {
+    int choice, qty, total, index, i;
+    char print;
+
+    showProducts(p);
+
+    printf("Choose product number: ");
+    scanf("%d", &choice);
+
+    if (choice < 1 || choice > N) {
+        printf("Invalid product.\n");
+        return;
+    }
+
+    index = choice - 1;
+
+    printf("Enter quantity: ");
+    scanf("%d", &qty);
+
+    if (qty <= 0) {
+        printf("Invalid quantity.\n");
+        return;
+    }
+
+    if (qty > p[index].stock) {
+        printf("Not enough stock.\n");
+        return;
+    }
+
+    total = p[index].price * qty;
+
+    if (total > *money) {
+        printf("Not enough money.\n");
+        return;
+    }
+
+    p[index].stock -= qty;
+    *money -= total;
+
+    i = findItem(inv, *invCount, p[index].name);
+    if (i == -1) {
+        strcpy(inv[*invCount].name, p[index].name);
+        inv[*invCount].qty = qty;
+        (*invCount)++;
+    } else {
+        inv[i].qty += qty;
+    }
+
+    printf("Bought %d %s.\n", qty, p[index].name);
+    printf("Remaining balance: %d\n", *money);
+
+    printf("Print receipt? (Y/N): ");
+    scanf(" %c", &print);
+
+    if (print == 'Y' || print == 'y') {
+        saveReceipt(storeName, p[index].name, qty, p[index].price, total, *money);
+    }
+}
+
+int findItem(Item inv[], int invCount, char name[]) {
+    int i;
+    for (i = 0; i < invCount; i++) {
+        if (strcmp(inv[i].name, name) == 0) return i;
+    }
+    return -1;
+}
+
+void showInventory(Item inv[], int invCount, int money) {
+    int i;
+    printf("\nYOUR INVENTORY:\n");
+    for (i = 0; i < invCount; i++) {
+        printf("%s - Qty: %d\n", inv[i].name, inv[i].qty);
+    }
+    printf("Remaining balance: %d\n", money);
+}
+
+void saveReceipt(char storeName[], char item[], int qty, int price, int total, int money) {
+    FILE *fp = fopen("receipt.txt", "a");
+    if (fp == NULL) return;
+
+    fprintf(fp, "STORE: %s\n", storeName);
+    fprintf(fp, "ITEM: %s\n", item);
+    fprintf(fp, "QTY: %d\n", qty);
+    fprintf(fp, "PRICE: %d\n", price);
+    fprintf(fp, "TOTAL: %d\n", total);
+    fprintf(fp, "BALANCE: %d\n", money);
+    fprintf(fp, "----------------------\n");
+
+    fclose(fp);
 }
