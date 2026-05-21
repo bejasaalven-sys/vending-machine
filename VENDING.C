@@ -35,37 +35,58 @@ int main() {
 
     char storeName[LEN];
 
-    printf("Choose store:\n");
-    printf("1. Alven Store\n");
-    printf("2. Mac Store\n");
-    printf("3. Camille Store\n");
-    printf("4. Combined Store\n");
-    printf("Enter: ");
-    scanf("%d", &store);
-
-    if (store == 1) strcpy(storeName, "Alven_Store");
-    else if (store == 2) strcpy(storeName, "Mac_Store");
-    else if (store == 3) strcpy(storeName, "Camille_Store");
-    else strcpy(storeName, "Combined_Store");
-
-    loadProducts(store, p);
-
     while (1) {
-        printf("\n1.View products\n2.Buy\n3.View inventory\n4.Exit\nEnter: ");
-        scanf("%d", &choice);
+        invCount = 0;
+        money = 500;
 
-        if (choice == 1) {
-            showProducts(p);
-        } else if (choice == 2) {
-            buyProduct(p, inv, &invCount, &money, storeName);
-            saveProducts(store, p);
-        } else if (choice == 3) {
-            showInventory(inv, invCount, money);
-        } else if (choice == 4) {
-            saveProducts(store, p);
+        printf("                      ====================\n");
+        printf("                      II CANTEEN STORE II\n");
+        printf("                      ====================\n");
+        printf("Choose store:\n");
+        printf("1. Alven's Store\n");
+        printf("2. Mae's Store\n");
+        printf("3. Camille's Store\n");
+        printf("4. Lowie's Store\n");
+        printf("5. Exit\n");
+        printf("Enter: ");
+        scanf("%d", &store);
+
+        if (store == 5) {
             break;
-        } else {
-            printf("Invalid choice.\n");
+        }
+
+        if (store == 1) strcpy(storeName, "Alven_Store");
+        else if (store == 2) strcpy(storeName, "Mae_Store");
+        else if (store == 3) strcpy(storeName, "Camille_Store");
+        else if (store == 4) strcpy(storeName, "Lowie's_Store");
+        else {
+            printf("Invalid store.\n");
+            continue;
+        }
+
+        loadProducts(store, p);
+
+        while (1) {
+            printf("\n1. View products\n");
+            printf("2. Buy\n");
+            printf("3. View inventory\n");
+            printf("4. Back to store selection\n");
+            printf("Enter: ");
+            scanf("%d", &choice);
+
+            if (choice == 1) {
+                showProducts(p);
+            } else if (choice == 2) {
+                buyProduct(p, inv, &invCount, &money, storeName);
+                saveProducts(store, p);
+            } else if (choice == 3) {
+                showInventory(inv, invCount, money);
+            } else if (choice == 4) {
+                saveProducts(store, p);
+                break;
+            } else {
+                printf("Invalid choice.\n");
+            }
         }
     }
 
@@ -77,9 +98,9 @@ void loadProducts(int store, Product p[]) {
     int i;
 
     if (store == 1) fp = fopen("alven_stock.txt", "r");
-    else if (store == 2) fp = fopen("mac_stock.txt", "r");
+    else if (store == 2) fp = fopen("mae_stock.txt", "r");
     else if (store == 3) fp = fopen("camille_stock.txt", "r");
-    else fp = fopen("combined_stock.txt", "r");
+    else fp = fopen("lowie_stock.txt", "r");
 
     if (fp == NULL) {
         if (store == 1) {
@@ -89,11 +110,11 @@ void loadProducts(int store, Product p[]) {
             strcpy(p[3].name, "Bread");   p[3].price = 15; p[3].stock = 20;
             strcpy(p[4].name, "Candy");   p[4].price = 10; p[4].stock = 25;
         } else if (store == 2) {
-            strcpy(p[0].name, "Burger");  p[0].price = 60; p[0].stock = 10;
-            strcpy(p[1].name, "Fries");   p[1].price = 35; p[1].stock = 15;
-            strcpy(p[2].name, "Soda");    p[2].price = 25; p[2].stock = 20;
-            strcpy(p[3].name, "Hotdog");  p[3].price = 40; p[3].stock = 12;
-            strcpy(p[4].name, "IceCream");p[4].price = 45; p[4].stock = 8;
+            strcpy(p[0].name, "Burger");   p[0].price = 60; p[0].stock = 10;
+            strcpy(p[1].name, "Fries");    p[1].price = 35; p[1].stock = 15;
+            strcpy(p[2].name, "Soda");     p[2].price = 25; p[2].stock = 20;
+            strcpy(p[3].name, "Hotdog");   p[3].price = 40; p[3].stock = 12;
+            strcpy(p[4].name, "IceCream"); p[4].price = 45; p[4].stock = 8;
         } else if (store == 3) {
             strcpy(p[0].name, "RiceMeal"); p[0].price = 70; p[0].stock = 8;
             strcpy(p[1].name, "Pasta");    p[1].price = 55; p[1].stock = 10;
@@ -102,10 +123,10 @@ void loadProducts(int store, Product p[]) {
             strcpy(p[4].name, "Sandwich"); p[4].price = 50; p[4].stock = 10;
         } else {
             strcpy(p[0].name, "Notebook"); p[0].price = 25; p[0].stock = 15;
-            strcpy(p[1].name, "Pen");      p[1].price = 10; p[1].stock = 30;
-            strcpy(p[2].name, "Pencil");   p[2].price = 8;  p[2].stock = 40;
-            strcpy(p[3].name, "Eraser");   p[3].price = 5;  p[3].stock = 25;
-            strcpy(p[4].name, "Ruler");    p[4].price = 12; p[4].stock = 20;
+            strcpy(p[1].name, "Pen");       p[1].price = 10; p[1].stock = 30;
+            strcpy(p[2].name, "Pencil");    p[2].price = 8;  p[2].stock = 40;
+            strcpy(p[3].name, "Eraser");    p[3].price = 5;  p[3].stock = 25;
+            strcpy(p[4].name, "Ruler");     p[4].price = 12; p[4].stock = 20;
         }
         return;
     }
@@ -121,9 +142,9 @@ void saveProducts(int store, Product p[]) {
     int i;
 
     if (store == 1) fp = fopen("alven_stock.txt", "w");
-    else if (store == 2) fp = fopen("mac_stock.txt", "w");
+    else if (store == 2) fp = fopen("mae_stock.txt", "w");
     else if (store == 3) fp = fopen("camille_stock.txt", "w");
-    else fp = fopen("combined_stock.txt", "w");
+    else fp = fopen("lowie_stock.txt", "w");
 
     if (fp == NULL) return;
 
@@ -182,9 +203,13 @@ void buyProduct(Product p[], Item inv[], int *invCount, int *money, char storeNa
 
     i = findItem(inv, *invCount, p[index].name);
     if (i == -1) {
-        strcpy(inv[*invCount].name, p[index].name);
-        inv[*invCount].qty = qty;
-        (*invCount)++;
+        if (*invCount < MAXINV) {
+            strcpy(inv[*invCount].name, p[index].name);
+            inv[*invCount].qty = qty;
+            (*invCount)++;
+        } else {
+            printf("Inventory full.\n");
+        }
     } else {
         inv[i].qty += qty;
     }
