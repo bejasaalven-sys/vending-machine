@@ -33,7 +33,7 @@ void view_inventory();
 
 int main() {
     load_stock();
-    load_cash(); // Checks for previous cash database records safely
+    load_cash(); 
     choose_store_menu();
     return 0;
 }
@@ -98,25 +98,25 @@ void log_purchase_receipt(char *name, int qty, float price) {
 void choose_store_menu() {
     int choice;
     do {
+        system("clear");
         printf("\n===================================\n");
-        printf("    SELECT A CAMPUS STOREFRONT\n");
+        printf("      SELECT A CAMPUS STORE\n");
         printf("===================================\n");
         printf("[1] Mae's Store         (Soft Drinks)\n");
         printf("[2] Camille's Store     (Snacks & Chips)\n");
         printf("[3] Alven's Store       (Pastries & Biscuits)\n");
         printf("[4] Louie's Store       (Healthy Options)\n");
-        printf("[5] Shut Down System\n");
+        printf("[5] Exit \n");
         printf("===================================\n");
         printf("Enter choice: ");
         
         // Input validation for menu selection character inputs
         if (scanf("%d", &choice) != 1) {
             printf("\nInvalid input! Please enter a valid number.\n");
-            while (getchar() != '\n'); // Purge bad characters from the scanner buffer
+            while (getchar() != '\n'); 
             choice = 0; 
             continue;
         }
-
         // Out-of-bounds menu integer validation
         if (choice < 1 || choice > 5) {
             printf("\nInvalid input! Option out of range. Choose [1-5].\n");
@@ -146,12 +146,13 @@ void choose_store_menu() {
                 break; 
         }
     } while (choice != 5);
-    printf("\nShutting down vending hub. Goodbye!\n");
+    printf("\nThank You for Shopping. Goodbye!\n");
 }
 
 void show_store_dashboard() {
     int choice;
     do {
+        system("clear");
         printf("\n===================================\n");
         printf("    WELCOME TO: %s\n", active_store_name);
         printf("    Category Hub: %s\n", active_store_category);
@@ -215,7 +216,7 @@ void shop_store_products() {
     }
 
     int choice_no, qty;
-    printf("Enter Item 'No.' to buy (or 0 to go back): ");
+    printf("Enter Item (1-5):  (or 0 to go back): ");
     
     // Validates if input item reference index is numeric
     if (scanf("%d", &choice_no) != 1) {
@@ -279,6 +280,7 @@ void shop_store_products() {
 }
 
 void view_inventory() {
+    system("clear");
     printf("\n=== STUDENT BALANCE & PURCHASED INVENTORY ===\n");
     printf("Remaining Wallet Funds: ₱%.2f\n", student_cash);
     

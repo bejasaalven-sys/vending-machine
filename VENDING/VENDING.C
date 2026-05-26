@@ -2,257 +2,332 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define N 5
-#define LEN 30
-#define MAXINV 20
+#define MAX_PRODUCTS 25
 
 typedef struct {
-    char name[LEN];
-    int price;
+    char category[50];
+    char name[50];
+    float price;
     int stock;
 } Product;
 
-typedef struct {
-    char name[LEN];
-    int qty;
-} Item;
+Product machine[MAX_PRODUCTS];
+int total_products = 0;
 
-/* function prototypes */
-void loadProducts(int store, Product p[]);
-void saveProducts(int store, Product p[]);
-void showProducts(Product p[]);
-void buyProduct(Product p[], Item inv[], int *invCount, int *money, char storeName[]);
-void showInventory(Item inv[], int invCount, int money);
-int findItem(Item inv[], int invCount, char name[]);
-void saveReceipt(char storeName[], char item[], int qty, int price, int total, int money);
+// The base wallet balance tracked in code memory if cash.txt is not present
+float student_cash = 500.00; 
+
+char active_store_name[50] = "";
+char active_store_category[50] = "";
+
+// Function Declarations
+void load_stock();
+void save_stock();
+void load_cash();
+void save_cash();
+void log_purchase_receipt(char *name, int qty, float price);
+void choose_store_menu();
+void shop_store_products();
+void view_inventory();
 
 int main() {
-    Product p[N];
-    Item inv[MAXINV];
-    int invCount = 0;
-    int money = 500;
-    int store, choice;
-
-    char storeName[LEN];
-
-    while (1) {
-        invCount = 0;
-        money = 500;
-
-        printf("                      ====================\n");
-        printf("                      II CANTEEN STORE II\n");
-        printf("                      ====================\n");
-        printf("Choose store:\n");
-        printf("1. Alven's Store\n");
-        printf("2. Mae's Store\n");
-        printf("3. Camille's Store\n");
-        printf("4. Lowie's Store\n");
-        printf("5. Exit\n");
-        printf("Enter: ");
-        scanf("%d", &store);
-
-        if (store == 5) {
-            break;
-        }
-
-        if (store == 1) strcpy(storeName, "Alven_Store");
-        else if (store == 2) strcpy(storeName, "Mae_Store");
-        else if (store == 3) strcpy(storeName, "Camille_Store");
-        else if (store == 4) strcpy(storeName, "Lowie's_Store");
-        else {
-            printf("Invalid store.\n");
-            continue;
-        }
-
-        loadProducts(store, p);
-
-        while (1) {
-            printf("\n1. View products\n");
-            printf("2. Buy\n");
-            printf("3. View inventory\n");
-            printf("4. Back to store selection\n");
-            printf("Enter: ");
-            scanf("%d", &choice);
-
-            if (choice == 1) {
-                showProducts(p);
-            } else if (choice == 2) {
-                buyProduct(p, inv, &invCount, &money, storeName);
-                saveProducts(store, p);
-            } else if (choice == 3) {
-                showInventory(inv, invCount, money);
-            } else if (choice == 4) {
-                saveProducts(store, p);
-                break;
-            } else {
-                printf("Invalid choice.\n");
-            }
-        }
-    }
-
+    load_stock();
+    load_cash(); 
+    choose_store_menu();
     return 0;
 }
 
-void loadProducts(int store, Product p[]) {
-    FILE *fp;
-    int i;
-
-    if (store == 1) fp = fopen("alven_stock.txt", "r");
-    else if (store == 2) fp = fopen("mae_stock.txt", "r");
-    else if (store == 3) fp = fopen("camille_stock.txt", "r");
-    else fp = fopen("lowie_stock.txt", "r");
-
-    if (fp == NULL) {
-        if (store == 1) {
-            strcpy(p[0].name, "Water");   p[0].price = 20; p[0].stock = 10;
-            strcpy(p[1].name, "Juice");   p[1].price = 30; p[1].stock = 8;
-            strcpy(p[2].name, "Chips");   p[2].price = 25; p[2].stock = 12;
-            strcpy(p[3].name, "Bread");   p[3].price = 15; p[3].stock = 20;
-            strcpy(p[4].name, "Candy");   p[4].price = 10; p[4].stock = 25;
-        } else if (store == 2) {
-            strcpy(p[0].name, "Burger");   p[0].price = 60; p[0].stock = 10;
-            strcpy(p[1].name, "Fries");    p[1].price = 35; p[1].stock = 15;
-            strcpy(p[2].name, "Soda");     p[2].price = 25; p[2].stock = 20;
-            strcpy(p[3].name, "Hotdog");   p[3].price = 40; p[3].stock = 12;
-            strcpy(p[4].name, "IceCream"); p[4].price = 45; p[4].stock = 8;
-        } else if (store == 3) {
-            strcpy(p[0].name, "RiceMeal"); p[0].price = 70; p[0].stock = 8;
-            strcpy(p[1].name, "Pasta");    p[1].price = 55; p[1].stock = 10;
-            strcpy(p[2].name, "MilkTea");  p[2].price = 45; p[2].stock = 15;
-            strcpy(p[3].name, "Cookies");  p[3].price = 20; p[3].stock = 18;
-            strcpy(p[4].name, "Sandwich"); p[4].price = 50; p[4].stock = 10;
-        } else {
-            strcpy(p[0].name, "Notebook"); p[0].price = 25; p[0].stock = 15;
-            strcpy(p[1].name, "Pen");       p[1].price = 10; p[1].stock = 30;
-            strcpy(p[2].name, "Pencil");    p[2].price = 8;  p[2].stock = 40;
-            strcpy(p[3].name, "Eraser");    p[3].price = 5;  p[3].stock = 25;
-            strcpy(p[4].name, "Ruler");     p[4].price = 12; p[4].stock = 20;
-        }
+void load_stock() {
+    FILE *file = fopen("stock.txt", "r");
+    if (file == NULL) {
+        printf("Error: stock.txt missing!\n");
         return;
     }
-
-    for (i = 0; i < N; i++) {
-        fscanf(fp, "%s %d %d", p[i].name, &p[i].price, &p[i].stock);
+    total_products = 0;
+    while (fscanf(file, "%s %s %f %d", 
+                  machine[total_products].category, 
+                  machine[total_products].name, 
+                  &machine[total_products].price, 
+                  &machine[total_products].stock) != EOF) {
+        total_products++;
+        if (total_products >= MAX_PRODUCTS) break;
     }
-    fclose(fp);
+    fclose(file);
 }
 
-void saveProducts(int store, Product p[]) {
-    FILE *fp;
-    int i;
-
-    if (store == 1) fp = fopen("alven_stock.txt", "w");
-    else if (store == 2) fp = fopen("mae_stock.txt", "w");
-    else if (store == 3) fp = fopen("camille_stock.txt", "w");
-    else fp = fopen("lowie_stock.txt", "w");
-
-    if (fp == NULL) return;
-
-    for (i = 0; i < N; i++) {
-        fprintf(fp, "%s %d %d\n", p[i].name, p[i].price, p[i].stock);
+void save_stock() {
+    FILE *file = fopen("stock.txt", "w");
+    if (file == NULL) return;
+    for (int i = 0; i < total_products; i++) {
+        fprintf(file, "%s %s %.2f %d\n", 
+                machine[i].category, machine[i].name, machine[i].price, machine[i].stock);
     }
-    fclose(fp);
+    fclose(file);
 }
 
-void showProducts(Product p[]) {
-    int i;
-    printf("\nAVAILABLE PRODUCTS:\n");
-    for (i = 0; i < N; i++) {
-        printf("%d. %s - Price: %d - Stock: %d\n", i + 1, p[i].name, p[i].price, p[i].stock);
-    }
-}
-
-void buyProduct(Product p[], Item inv[], int *invCount, int *money, char storeName[]) {
-    int choice, qty, total, index, i;
-    char print;
-
-    showProducts(p);
-
-    printf("Choose product number: ");
-    scanf("%d", &choice);
-
-    if (choice < 1 || choice > N) {
-        printf("Invalid product.\n");
-        return;
-    }
-
-    index = choice - 1;
-
-    printf("Enter quantity: ");
-    scanf("%d", &qty);
-
-    if (qty <= 0) {
-        printf("Invalid quantity.\n");
-        return;
-    }
-
-    if (qty > p[index].stock) {
-        printf("Not enough stock.\n");
-        return;
-    }
-
-    total = p[index].price * qty;
-
-    if (total > *money) {
-        printf("Not enough money.\n");
-        return;
-    }
-
-    p[index].stock -= qty;
-    *money -= total;
-
-    i = findItem(inv, *invCount, p[index].name);
-    if (i == -1) {
-        if (*invCount < MAXINV) {
-            strcpy(inv[*invCount].name, p[index].name);
-            inv[*invCount].qty = qty;
-            (*invCount)++;
-        } else {
-            printf("Inventory full.\n");
-        }
+void load_cash() {
+    FILE *file = fopen("cash.txt", "r");
+    if (file != NULL) {
+        fscanf(file, "%f", &student_cash);
+        fclose(file);
     } else {
-        inv[i].qty += qty;
-    }
-
-    printf("Bought %d %s.\n", qty, p[index].name);
-    printf("Remaining balance: %d\n", *money);
-
-    printf("Print receipt? (Y/N): ");
-    scanf(" %c", &print);
-
-    if (print == 'Y' || print == 'y') {
-        saveReceipt(storeName, p[index].name, qty, p[index].price, total, *money);
+        student_cash = 500.00; 
     }
 }
 
-int findItem(Item inv[], int invCount, char name[]) {
-    int i;
-    for (i = 0; i < invCount; i++) {
-        if (strcmp(inv[i].name, name) == 0) return i;
+void save_cash() {
+    FILE *file = fopen("cash.txt", "w");
+    if (file != NULL) {
+        fprintf(file, "%.2f\n", student_cash);
+        fclose(file);
     }
-    return -1;
 }
 
-void showInventory(Item inv[], int invCount, int money) {
-    int i;
-    printf("\nYOUR INVENTORY:\n");
-    for (i = 0; i < invCount; i++) {
-        printf("%s - Qty: %d\n", inv[i].name, inv[i].qty);
+void log_purchase_receipt(char *name, int qty, float price) {
+    // Temporary structure to hold and process existing receipt rows
+    typedef struct {
+        char cat[50];
+        char name[50];
+        int qty;
+        float price;
+    } ReceiptItem;
+
+    ReceiptItem temp_list[100];
+    int count = 0;
+    int found = 0;
+
+    // Step 1: Read existing history if the file already exists
+    FILE *file = fopen("inventory.txt", "r");
+    if (file != NULL) {
+        while (fscanf(file, "%s %s %d %f", temp_list[count].cat, temp_list[count].name, &temp_list[count].qty, &temp_list[count].price) != EOF) {
+            // Check if this row matches the product we are currently buying
+            if (strcmp(temp_list[count].cat, active_store_category) == 0 && strcmp(temp_list[count].name, name) == 0) {
+                temp_list[count].qty += qty; // Accumulate/Add to previous same product quantity
+                found = 1;
+            }
+            count++;
+            if (count >= 100) break;
+        }
+        fclose(file);
     }
-    printf("Remaining balance: %d\n", money);
+
+    // Step 2: If it's a completely new product item, add it to our tracking array list
+    if (!found && count < 100) {
+        strcpy(temp_list[count].cat, active_store_category);
+        strcpy(temp_list[count].name, name);
+        temp_list[count].qty = qty;
+        temp_list[count].price = price;
+        count++;
+    }
+
+    // Step 3: Clear old logs and write back the consolidated, updated list rows
+    file = fopen("inventory.txt", "w");
+    if (file != NULL) {
+        for (int i = 0; i < count; i++) {
+            fprintf(file, "%s %s %d %.2f\n", temp_list[i].cat, temp_list[i].name, temp_list[i].qty, temp_list[i].price);
+        }
+        fclose(file);
+    }
 }
 
-void saveReceipt(char storeName[], char item[], int qty, int price, int total, int money) {
-    FILE *fp = fopen("receipt.txt", "a");
-    if (fp == NULL) return;
+void choose_store_menu() {
+    int choice;
+    do {
+        system("clear");
+        printf("\n===================================\n");
+        printf("       SELECT A CAMPUS STORE\n");
+        printf("===================================\n");
+        printf("[1] Mae's Store         (Soft Drinks)\n");
+        printf("[2] Camille's Store     (Snacks & Chips)\n");
+        printf("[3] Alven's Store       (Pastries & Biscuits)\n");
+        printf("[4] Louie's Store       (Healthy Options)\n");
+        printf("[5] View Personal Inventory & Cash\n"); 
+        printf("[6] Exit \n");
+        printf("===================================\n");
+        printf("Enter choice: ");
+        
+        if (scanf("%d", &choice) != 1) {
+            printf("\nInvalid input! Please enter a valid number.\n");
+            while (getchar() != '\n'); 
+            choice = 0; 
+            continue;
+        }
 
-    fprintf(fp, "STORE: %s\n", storeName);
-    fprintf(fp, "ITEM: %s\n", item);
-    fprintf(fp, "QTY: %d\n", qty);
-    fprintf(fp, "PRICE: %d\n", price);
-    fprintf(fp, "TOTAL: %d\n", total);
-    fprintf(fp, "BALANCE: %d\n", money);
-    fprintf(fp, "----------------------\n");
+        if (choice < 1 || choice > 6) {
+            printf("\nInvalid input! Option out of range. Choose [1-6].\n");
+            printf("Press Enter to continue...");
+            while (getchar() != '\n'); getchar();
+            continue;
+        }
 
-    fclose(fp);
+        switch (choice) {
+            case 1: 
+                strcpy(active_store_name, "Mae's Store");
+                strcpy(active_store_category, "Drinks");
+                shop_store_products();
+                break; 
+            case 2: 
+                strcpy(active_store_name, "Camille's Store");
+                strcpy(active_store_category, "Snacks");
+                shop_store_products();
+                break; 
+            case 3: 
+                strcpy(active_store_name, "Alven's Store");
+                strcpy(active_store_category, "Pastries");
+                shop_store_products();
+                break; 
+            case 4: 
+                strcpy(active_store_name, "Louie's Store");
+                strcpy(active_store_category, "Healthy");
+                shop_store_products();
+                break; 
+            case 5:
+                view_inventory(); 
+                break;
+        }
+    } while (choice != 6);
+    printf("\nThank You for Shopping. Goodbye!\n");
+}
+
+void shop_store_products() {
+    int shopping_active = 1;
+    
+    while (shopping_active) {
+        system("clear");
+        printf("\n-------------------------------------------------------\n");
+        printf(" AVAILABLE PRODUCTS IN %s (%s)\n", active_store_name, active_store_category);
+        printf("-------------------------------------------------------\n");
+        printf(" YOUR CURRENT BALANCE: ₱%.2f\n", student_cash);
+        printf("-------------------------------------------------------\n");
+        printf("%-4s %-18s %-10s %-5s\n", "No.", "Item Name", "Price", "Stock");
+        printf("-------------------------------------------------------\n");
+        
+        int display_num = 1; 
+        int item_indices[MAX_PRODUCTS]; 
+        
+        for(int k = 0; k < MAX_PRODUCTS; k++) {
+            item_indices[k] = -1;
+        }
+        
+        for (int i = 0; i < total_products; i++) {
+            if (strcmp(machine[i].category, active_store_category) == 0) {
+                printf("[%2d] %-18s ₱%-9.2f %-5d\n", display_num, machine[i].name, machine[i].price, machine[i].stock);
+                item_indices[display_num] = i; 
+                display_num++;
+            }
+        }
+        printf("-------------------------------------------------------\n");
+
+        if (display_num == 1) {
+            printf("(This store currently has no products configured in stock.txt)\n");
+            printf("Press Enter to go back...");
+            while (getchar() != '\n'); getchar();
+            return;
+        }
+
+        int choice_no, qty;
+        printf("Enter Item 'No.' to buy (or 0 to go back to main menu): ");
+        
+        if (scanf("%d", &choice_no) != 1) {
+            printf("\nInvalid input! Please enter an integer number.\n");
+            printf("Press Enter to refresh screen...");
+            while (getchar() != '\n'); getchar();
+            continue;
+        }
+        
+        if (choice_no == 0) {
+            shopping_active = 0; 
+            continue;
+        }
+        
+        if (choice_no < 1 || choice_no >= display_num || item_indices[choice_no] == -1) {
+            printf("\nInvalid input! Selected item number does not exist.\n");
+            printf("Press Enter to refresh screen...");
+            while (getchar() != '\n'); getchar();
+            continue;
+        }
+
+        printf("Enter quantity to purchase: ");
+        if (scanf("%d", &qty) != 1) {
+            printf("\nInvalid input! Quantity must be a solid number.\n");
+            printf("Press Enter to refresh screen...");
+            while (getchar() != '\n'); getchar();
+            continue;
+        }
+        
+        if (qty <= 0) {
+            printf("\nInvalid input! Quantity must be at least 1.\n");
+            printf("Press Enter to refresh screen...");
+            while (getchar() != '\n'); getchar();
+            continue;
+        }
+
+        int db_index = item_indices[choice_no];
+
+        if (machine[db_index].stock < qty) {
+            printf("\nNot enough stock! Available: %d\n", machine[db_index].stock);
+            printf("Press Enter to refresh screen...");
+            while (getchar() != '\n'); getchar();
+            continue;
+        }
+
+        float cost = machine[db_index].price * qty;
+
+        if (student_cash < cost) {
+            printf("\n[Notice] Insufficient funds! Processing transaction via credit line.\n");
+        }
+
+        machine[db_index].stock -= qty;
+        student_cash -= cost; 
+
+        save_stock();
+        save_cash(); 
+        log_purchase_receipt(machine[db_index].name, qty, machine[db_index].price);
+
+        printf("\nSuccess! Disbursed %d unit(s) of %s.\n", qty, machine[db_index].name);
+        
+        if (qty == 1) {
+            printf("Total Amount Used: ₱%.2f\n", cost);
+        } else {
+            printf("Total Amount Used: ₱%.2f (₱%.2f each)\n", cost, machine[db_index].price);
+        }
+        
+        printf("Remaining Wallet Funds: ₱%.2f\n", student_cash);
+        printf("\nPress Enter to stay in this window and keep buying...");
+        while (getchar() != '\n'); getchar(); 
+    }
+}
+
+void view_inventory() {
+    system("clear");
+    printf("\n=== STUDENT BALANCE & PURCHASED INVENTORY ===\n");
+    printf("Remaining Wallet Funds: ₱%.2f\n", student_cash);
+    
+    FILE *file = fopen("inventory.txt", "r");
+    if (file == NULL) {
+        printf("\nNo transactions logged yet.\n");
+        printf("\nPress Enter to return to Main Menu...");
+        while (getchar() != '\n'); getchar();
+        return;
+    }
+
+    char cat[50], name[50];
+    int qty;
+    float price;
+    float grand_total = 0.00;
+
+    printf("\n%-15s %-18s %-12s %-14s %-12s\n", "Category", "Purchased Item", "Total Qty", "Unit Price", "Total Cost");
+    printf("----------------------------------------------------------------------\n");
+
+    while (fscanf(file, "%s %s %d %f", cat, name, &qty, &price) != EOF) {
+        float item_line_total = price * qty;
+        grand_total += item_line_total;
+        printf("%-15s %-18s %-12d ₱%-13.2f ₱%-12.2f\n", cat, name, qty, price, item_line_total);
+    }
+    fclose(file);
+
+    printf("----------------------------------------------------------------------\n");
+    printf("TOTAL AMOUNT SPENT IN HUB: ₱%.2f\n", grand_total);
+    printf("\nPress Enter to return to Main Menu...");
+    while (getchar() != '\n'); getchar(); 
 }
