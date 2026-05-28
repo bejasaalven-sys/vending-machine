@@ -1,2 +1,0 @@
-Drinks Coke 5 30.00
-Snacks CornChips 8 20.00

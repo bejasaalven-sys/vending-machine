@@ -14,13 +14,11 @@ typedef struct {
 Product machine[MAX_PRODUCTS];
 int total_products = 0;
 
-// The base wallet balance tracked in code memory if cash.txt is not present
 float student_cash = 500.00; 
 
 char active_store_name[50] = "";
 char active_store_category[50] = "";
 
-// Function Declarations
 void load_stock();
 void save_stock();
 void load_cash();
@@ -84,7 +82,6 @@ void save_cash() {
 }
 
 void log_purchase_receipt(char *name, int qty, float price) {
-    // Temporary structure to hold and process existing receipt rows
     typedef struct {
         char cat[50];
         char name[50];
@@ -96,13 +93,11 @@ void log_purchase_receipt(char *name, int qty, float price) {
     int count = 0;
     int found = 0;
 
-    // Step 1: Read existing history if the file already exists
     FILE *file = fopen("inventory.txt", "r");
     if (file != NULL) {
         while (fscanf(file, "%s %s %d %f", temp_list[count].cat, temp_list[count].name, &temp_list[count].qty, &temp_list[count].price) != EOF) {
-            // Check if this row matches the product we are currently buying
             if (strcmp(temp_list[count].cat, active_store_category) == 0 && strcmp(temp_list[count].name, name) == 0) {
-                temp_list[count].qty += qty; // Accumulate/Add to previous same product quantity
+                temp_list[count].qty += qty; 
                 found = 1;
             }
             count++;
@@ -111,7 +106,6 @@ void log_purchase_receipt(char *name, int qty, float price) {
         fclose(file);
     }
 
-    // Step 2: If it's a completely new product item, add it to our tracking array list
     if (!found && count < 100) {
         strcpy(temp_list[count].cat, active_store_category);
         strcpy(temp_list[count].name, name);
@@ -120,7 +114,6 @@ void log_purchase_receipt(char *name, int qty, float price) {
         count++;
     }
 
-    // Step 3: Clear old logs and write back the consolidated, updated list rows
     file = fopen("inventory.txt", "w");
     if (file != NULL) {
         for (int i = 0; i < count; i++) {
@@ -133,7 +126,7 @@ void log_purchase_receipt(char *name, int qty, float price) {
 void choose_store_menu() {
     int choice;
     do {
-        system("clear");
+        system("clear || cls");
         printf("\n===================================\n");
         printf("       SELECT A CAMPUS STORE\n");
         printf("===================================\n");
@@ -159,6 +152,8 @@ void choose_store_menu() {
             while (getchar() != '\n'); getchar();
             continue;
         }
+
+        while (getchar() != '\n'); // Clears the input buffer clean before entering the store modules
 
         switch (choice) {
             case 1: 
@@ -191,9 +186,13 @@ void choose_store_menu() {
 
 void shop_store_products() {
     int shopping_active = 1;
+    char input_buffer[100];
     
     while (shopping_active) {
-        system("clear");
+        load_stock(); 
+        load_cash(); 
+
+        system("clear || cls");
         printf("\n-------------------------------------------------------\n");
         printf(" AVAILABLE PRODUCTS IN %s (%s)\n", active_store_name, active_store_category);
         printf("-------------------------------------------------------\n");
@@ -218,20 +217,23 @@ void shop_store_products() {
         }
         printf("-------------------------------------------------------\n");
 
-        if (display_num == 1) {
-            printf("(This store currently has no products configured in stock.txt)\n");
-            printf("Press Enter to go back...");
-            while (getchar() != '\n'); getchar();
-            return;
+        printf("Enter Item 'No.' to buy (or 0 to exit to main menu):\n");
+        printf("[ENTER to refresh and sync stock/cash changes]: ");
+        
+        fflush(stdout);
+        if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
+            continue;
         }
 
-        int choice_no, qty;
-        printf("Enter Item 'No.' to buy (or 0 to go back to main menu): ");
-        
-        if (scanf("%d", &choice_no) != 1) {
-            printf("\nInvalid input! Please enter an integer number.\n");
-            printf("Press Enter to refresh screen...");
-            while (getchar() != '\n'); getchar();
+        if (input_buffer[0] == '\n') {
+            continue; 
+        }
+
+        int choice_no;
+        if (sscanf(input_buffer, "%d", &choice_no) != 1) {
+            printf("\nInvalid choice! Please enter a number or press Enter.\n");
+            printf("Press Enter to continue...");
+            getchar();
             continue;
         }
         
@@ -241,24 +243,25 @@ void shop_store_products() {
         }
         
         if (choice_no < 1 || choice_no >= display_num || item_indices[choice_no] == -1) {
-            printf("\nInvalid input! Selected item number does not exist.\n");
+            printf("\nInvalid choice! Selected item number does not exist.\n");
             printf("Press Enter to refresh screen...");
-            while (getchar() != '\n'); getchar();
+            getchar();
             continue;
         }
 
         printf("Enter quantity to purchase: ");
-        if (scanf("%d", &qty) != 1) {
-            printf("\nInvalid input! Quantity must be a solid number.\n");
+        int qty;
+        if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL || sscanf(input_buffer, "%d", &qty) != 1) {
+            printf("\nInvalid entry! Quantity must be a valid number.\n");
             printf("Press Enter to refresh screen...");
-            while (getchar() != '\n'); getchar();
+            getchar();
             continue;
         }
         
         if (qty <= 0) {
             printf("\nInvalid input! Quantity must be at least 1.\n");
             printf("Press Enter to refresh screen...");
-            while (getchar() != '\n'); getchar();
+            getchar();
             continue;
         }
 
@@ -267,7 +270,7 @@ void shop_store_products() {
         if (machine[db_index].stock < qty) {
             printf("\nNot enough stock! Available: %d\n", machine[db_index].stock);
             printf("Press Enter to refresh screen...");
-            while (getchar() != '\n'); getchar();
+            getchar();
             continue;
         }
 
@@ -285,21 +288,16 @@ void shop_store_products() {
         log_purchase_receipt(machine[db_index].name, qty, machine[db_index].price);
 
         printf("\nSuccess! Disbursed %d unit(s) of %s.\n", qty, machine[db_index].name);
-        
-        if (qty == 1) {
-            printf("Total Amount Used: ₱%.2f\n", cost);
-        } else {
-            printf("Total Amount Used: ₱%.2f (₱%.2f each)\n", cost, machine[db_index].price);
-        }
-        
+        printf("Total Amount Used: ₱%.2f\n", cost);
         printf("Remaining Wallet Funds: ₱%.2f\n", student_cash);
+        
         printf("\nPress Enter to stay in this window and keep buying...");
-        while (getchar() != '\n'); getchar(); 
+        getchar(); 
     }
 }
 
 void view_inventory() {
-    system("clear");
+    system("clear || cls");
     printf("\n=== STUDENT BALANCE & PURCHASED INVENTORY ===\n");
     printf("Remaining Wallet Funds: ₱%.2f\n", student_cash);
     
